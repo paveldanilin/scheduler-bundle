@@ -42,3 +42,9 @@ services:
     arguments: ['@scheduler_bundle_context']
     tags:
       - { name: 'console.command', command: 'scheduler:execute' }
+
+
+  Pada\SchedulerBundle\Logger\TaskProcessor:
+    arguments: ['@scheduler_bundle_context']
+    tags:
+      - { name: monolog.processor }
