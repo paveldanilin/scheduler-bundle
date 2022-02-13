@@ -44,11 +44,7 @@ class SchedulerExtension extends Extension implements CompilerPassInterface
                 break;
             }
 
-            if (!$container->has($task->getClassName())) {
-                $container->register($task->getId(), $task->getClassName());
-            }
-
-            $definition = $container->findDefinition($task->getId());
+            $definition = $container->register($task->getId(), $task->getClassName());
             if (!$definition->hasTag('scheduler.task')) {
                 $definition->addTag('scheduler.task');
             }
