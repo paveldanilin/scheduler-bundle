@@ -1,0 +1,44 @@
+services:
+
+  scheduler_bundle_reflection_scanner:
+    class: Pada\Reflection\Scanner\Scanner
+    arguments: [ '@annotations.reader']
+
+
+  scheduler_bundle_task_scanner:
+    class: Pada\SchedulerBundle\TaskAnnotationScanner
+    arguments: ['@scheduler_bundle_reflection_scanner', ['%kernel.project_dir%/src', '%kernel.project_dir%/Tests/Fixtures']]
+
+
+  scheduler_bundle_worker_pool:
+    class: Pada\SchedulerBundle\WorkerPool\CommandWorkerPool
+    arguments: ['%kernel.project_dir%/', 'bin/console', 50, 200, null]
+    calls:
+      - setArgs: [['scheduler:execute']]
+
+
+  scheduler_bundle_scheduler:
+    class: Pada\SchedulerBundle\Scheduler
+    arguments: ['@scheduler_bundle_worker_pool']
+
+
+  scheduler_bundle_context:
+    public: true
+    class: Pada\SchedulerBundle\SchedulerContext
+    arguments: [ !tagged_locator { tag: 'scheduler.task' } ]
+
+
+  scheduler_bundle_command_start:
+    public: true
+    class: Pada\SchedulerBundle\Command\StartCommand
+    arguments: ['@scheduler_bundle_task_scanner','@scheduler_bundle_scheduler']
+    tags:
+      - { name: 'console.command', command: 'scheduler:start' }
+
+
+  scheduler_bundle_command_execute:
+    public: true
+    class: Pada\SchedulerBundle\Command\ExecuteCommand
+    arguments: ['@scheduler_bundle_context']
+    tags:
+      - { name: 'console.command', command: 'scheduler:execute' }

@@ -1,0 +1,9 @@
+parameters:
+    level: 6
+    paths:
+        - Command/
+        - Annotation/
+        - Logger/
+        - WorkerPool/
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
