@@ -16,14 +16,14 @@ final class SchedulerContext
     }
 
     /**
-     * @param string $taskId (see Task::generateId)
+     * @param string $taskClass
      * @return mixed
      * @throws \Psr\Container\ContainerExceptionInterface
      * @throws \Psr\Container\NotFoundExceptionInterface
      */
-    public function getTask(string $taskId)
+    public function getTask(string $taskClass)
     {
-        return $this->serviceLocator->get($taskId);
+        return $this->serviceLocator->get($taskClass);
     }
 
     public function setCurrentTaskId(string $taskId): void

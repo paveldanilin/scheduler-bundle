@@ -41,10 +41,9 @@ class ExecuteCommand extends Command
     {
         $className = (string)$input->getArgument('className');
         $methodName = (string)$input->getArgument('methodName');
-        $taskId = Task::generateId($className, $methodName);
 
-        $taskClass = $this->schedulerContext->getTask($taskId);
-        if (!\method_exists($taskClass, $methodName)) {
+        $taskServiceObject = $this->schedulerContext->getTask($className);
+        if (!\method_exists($taskServiceObject, $methodName)) {
             $this->logger->error(
                 'Scheduler: could not start task. The task class [{class_name}] does not have a method [{method_name}]', [
                     'class_name' => $className,
@@ -54,6 +53,7 @@ class ExecuteCommand extends Command
             throw new \RuntimeException('The task class does not have the ' . $methodName . ' method');
         }
 
+        $taskId = Task::generateId($className, $methodName);
         $this->schedulerContext->setCurrentTaskId($taskId);
 
         $this->logger->debug('[{task_id}] before task.', [
@@ -64,7 +64,7 @@ class ExecuteCommand extends Command
 
         try {
             \ob_start();
-            [$taskClass, $methodName]();
+            [$taskServiceObject, $methodName]();
             \ob_get_clean();
 
             $this->logger->debug('[{task_id}] after task.', [

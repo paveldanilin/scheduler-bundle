@@ -2,7 +2,6 @@
 
 namespace Pada\SchedulerBundle\Tests;
 
-use Pada\SchedulerBundle\Task;
 use Pada\SchedulerBundle\Tests\Fixtures\EveryHourTask;
 use Pada\SchedulerBundle\Tests\Fixtures\EveryMinuteTask;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -13,7 +12,7 @@ class SchedulerContextTest extends KernelTestCase
     {
         $kernel = static::createKernel();
         $kernel->boot();
-        $task = $kernel->getContainer()->get('scheduler_bundle_context')->getTask(Task::generateId(EveryMinuteTask::class, '__invoke'));
+        $task = $kernel->getContainer()->get('scheduler_bundle_context')->getTask(EveryMinuteTask::class);
         self::assertInstanceOf(EveryMinuteTask::class, $task);
     }
 
@@ -22,10 +21,7 @@ class SchedulerContextTest extends KernelTestCase
         $kernel = static::createKernel();
         $kernel->boot();
 
-        $task = $kernel->getContainer()->get('scheduler_bundle_context')->getTask(Task::generateId(EveryHourTask::class, 'doWork'));
-        self::assertInstanceOf(EveryHourTask::class, $task);
-
-        $task = $kernel->getContainer()->get('scheduler_bundle_context')->getTask(Task::generateId(EveryHourTask::class, 'doEveryWeek'));
+        $task = $kernel->getContainer()->get('scheduler_bundle_context')->getTask(EveryHourTask::class);
         self::assertInstanceOf(EveryHourTask::class, $task);
     }
 }
