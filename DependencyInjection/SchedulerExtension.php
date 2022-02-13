@@ -9,6 +9,7 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader;
+use Symfony\Component\DependencyInjection\Reference;
 
 class SchedulerExtension extends Extension implements CompilerPassInterface
 {
@@ -20,6 +21,13 @@ class SchedulerExtension extends Extension implements CompilerPassInterface
 
         $loader = new Loader\YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
+
+
+        $container->getDefinition('scheduler_bundle_worker_pool')
+            ->addMethodCall('setLogger', [new Reference('logger')]);
+
+        $container->getDefinition('scheduler_bundle_scheduler')
+            ->addMethodCall('setLogger', [new Reference('logger')]);
     }
 
     public function process(ContainerBuilder $container): void
