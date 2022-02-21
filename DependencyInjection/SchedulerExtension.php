@@ -24,10 +24,10 @@ class SchedulerExtension extends Extension implements CompilerPassInterface
 
 
         $container->getDefinition('scheduler_bundle_worker_pool')
-            ->addMethodCall('setLogger', [new Reference('logger')]);
+            ->addMethodCall('setLogger', [new Reference('scheduler_bundle_logger')]);
 
         $container->getDefinition('scheduler_bundle_scheduler')
-            ->addMethodCall('setLogger', [new Reference('logger')]);
+            ->addMethodCall('setLogger', [new Reference('scheduler_bundle_logger')]);
     }
 
     public function process(ContainerBuilder $container): void

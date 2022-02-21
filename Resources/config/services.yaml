@@ -1,5 +1,9 @@
 services:
 
+  scheduler_bundle_logger:
+    class: Psr\Log\LoggerInterface
+    factory: ['Pada\SchedulerBundle\Logger\LoggerFactory', 'createLogger']
+
   scheduler_bundle_reflection_scanner:
     class: Pada\Reflection\Scanner\Scanner
     arguments: [ '@annotations.reader']
