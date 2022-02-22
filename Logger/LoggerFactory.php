@@ -8,10 +8,10 @@ use Psr\Log\LoggerInterface;
 
 abstract class LoggerFactory
 {
-    public static function createLogger(): LoggerInterface
+    public static function createLogger(string $logDir): LoggerInterface
     {
         $logger = new Logger('scheduler');
-        $rotatingHandler = new RotatingFileHandler('scheduler.log', 30, Logger::DEBUG);
+        $rotatingHandler = new RotatingFileHandler($logDir . DIRECTORY_SEPARATOR . 'scheduler.log', 30, Logger::DEBUG);
         $logger->pushHandler($rotatingHandler);
         return $logger;
     }

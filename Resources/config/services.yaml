@@ -3,6 +3,7 @@ services:
   scheduler_bundle_logger:
     class: Psr\Log\LoggerInterface
     factory: ['Pada\SchedulerBundle\Logger\LoggerFactory', 'createLogger']
+    arguments: ['%kernel.project_dir%/var/log']
 
   scheduler_bundle_reflection_scanner:
     class: Pada\Reflection\Scanner\Scanner
