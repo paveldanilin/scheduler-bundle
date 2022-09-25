@@ -2,7 +2,7 @@
 
 namespace Pada\SchedulerBundle\DependencyInjection;
 
-use Pada\SchedulerBundle\Task;
+use Pada\SchedulerBundle\AbstractTask;
 use Pada\SchedulerBundle\TaskScannerInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -38,7 +38,7 @@ class SchedulerExtension extends Extension implements CompilerPassInterface
             throw new \RuntimeException('Not found task scanner');
         }
 
-        /** @var Task|null $task */
+        /** @var AbstractTask|null $task */
         foreach ($taskScanner->next() as $task) {
             if (null === $task) {
                 break;

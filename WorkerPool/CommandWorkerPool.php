@@ -2,7 +2,8 @@
 
 namespace Pada\SchedulerBundle\WorkerPool;
 
-use Pada\SchedulerBundle\Task;
+use Pada\SchedulerBundle\AbstractTask;
+use Pada\SchedulerBundle\CronTask;
 use Symfony\Component\Process\PhpExecutableFinder;
 
 final class CommandWorkerPool extends AbstractProcessPool
@@ -27,7 +28,7 @@ final class CommandWorkerPool extends AbstractProcessPool
         $this->args = $args;
     }
 
-    protected function buildWorkerCommand(Task $task): array
+    protected function buildWorkerCommand(AbstractTask $task): array
     {
         $args = \array_merge($this->args, [$task->getClassName(), $task->getMethodName()]);
         return \array_merge([$this->phpBinaryPath, $this->starterScript], $args);

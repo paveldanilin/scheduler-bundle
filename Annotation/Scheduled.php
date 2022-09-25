@@ -23,7 +23,8 @@ class Scheduled
     public const MONTHLY = '@monthly';
     public const YEARLY = '@yearly';
 
-    private string $cron;
+    private ?int $interval; // sec
+    private ?string $cron;
     private ?int $timeout;
     private ?float $delayTimeout;
     private ?string $errorHandler;
@@ -31,19 +32,30 @@ class Scheduled
 
     public function __construct(array $data)
     {
-        $this->cron = $data['value'] ?? $data['cron'] ?? null;
-        if (empty($this->cron)) {
-            throw new \InvalidArgumentException('A cron expression must be non empty string');
-        }
+        $this->cron = $data['cron'] ?? null;
+        $this->interval = $data['interval'] ?? null;
         $this->timeout = $data['timeout'] ?? null;
         $this->delayTimeout = $data['delayTimeout'] ?? null;
         $this->errorHandler = $data['errorHandler'] ?? null;
         $this->errorThreshold = $data['errorThreshold'] ?? 0;
+
+        if (null === $this->interval && empty($this->cron)) {
+            throw new \RuntimeException('`interval` or `cron` property must be defined');
+        }
+
+        if (null !== $this->interval && 0 <= $this->interval) {
+            throw new \RuntimeException('`interval` must be > 0');
+        }
     }
 
-    public function getCron(): string
+    public function getCron(): ?string
     {
         return $this->cron;
+    }
+
+    public function getInterval(): ?int
+    {
+        return $this->interval;
     }
 
     /**

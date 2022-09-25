@@ -5,15 +5,15 @@ namespace Pada\SchedulerBundle;
 final class DelayedTask
 {
     private float $timer;
-    private Task $task;
+    private AbstractTask $task;
 
-    public function __construct(Task $task)
+    public function __construct(AbstractTask $task)
     {
         $this->task = $task;
         $this->timer = \microtime(true);
     }
 
-    public function getTask(): Task
+    public function getTask(): AbstractTask
     {
         return $this->task;
     }

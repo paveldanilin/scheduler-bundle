@@ -2,7 +2,7 @@
 
 namespace Pada\SchedulerBundle;
 
-final class TaskBuilder implements TaskBuilderInterface
+final class CronTaskBuilder implements TaskBuilderInterface
 {
     private string $className = '';
     private string $methodName = '';
@@ -27,6 +27,11 @@ final class TaskBuilder implements TaskBuilderInterface
     public function cron(string $cronExpression): TaskBuilderInterface
     {
         $this->cronExpression = $cronExpression;
+        return $this;
+    }
+
+    public function interval(int $interval): self
+    {
         return $this;
     }
 
@@ -65,9 +70,9 @@ final class TaskBuilder implements TaskBuilderInterface
         $this->delayedTimeout = null;
     }
 
-    public function build(): Task
+    public function build(): AbstractTask
     {
-        $newTask = new Task($this->className,
+        $newTask = new CronTask($this->className,
             $this->methodName,
             $this->cronExpression,
             $this->timeout,
