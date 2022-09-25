@@ -3,7 +3,6 @@
 namespace Pada\SchedulerBundle\WorkerPool;
 
 use Pada\SchedulerBundle\AbstractTask;
-use Pada\SchedulerBundle\CronTask;
 use Symfony\Component\Process\PhpExecutableFinder;
 
 final class CommandWorkerPool extends AbstractProcessPool

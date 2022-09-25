@@ -43,7 +43,7 @@ class Scheduled
             throw new \RuntimeException('`interval` or `cron` property must be defined');
         }
 
-        if (null !== $this->interval && 0 <= $this->interval) {
+        if (null !== $this->interval && $this->interval <= 0) {
             throw new \RuntimeException('`interval` must be > 0');
         }
     }

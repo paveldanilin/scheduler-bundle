@@ -39,7 +39,6 @@ final class TaskAnnotationScanner implements TaskScannerInterface
             if (!$this->shouldScan($dir)) {
                 continue;
             }
-            /** @var ClassInfo $classInfo */
             foreach ($this->metaScanner->in($dir) as $classInfo) {
                 /** @var Scheduled|null $classLevelAnnotation */
                 $classLevelAnnotation = $this->getScheduledClassAnnotation($classInfo);

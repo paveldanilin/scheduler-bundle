@@ -2,7 +2,7 @@
 
 namespace Pada\SchedulerBundle\Command;
 
-use Pada\SchedulerBundle\CronTask;
+use Pada\SchedulerBundle\AbstractTask;
 use Pada\SchedulerBundle\SchedulerContext;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -53,7 +53,7 @@ class ExecuteCommand extends Command
             throw new \RuntimeException('The task class does not have the ' . $methodName . ' method');
         }
 
-        $taskId = CronTask::generateId($className, $methodName);
+        $taskId = AbstractTask::generateId($className, $methodName);
         $this->schedulerContext->setCurrentTaskId($taskId);
 
         $this->logger->debug('[{task_id}] before task.', [

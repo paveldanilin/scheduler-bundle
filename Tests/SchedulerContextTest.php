@@ -2,6 +2,7 @@
 
 namespace Pada\SchedulerBundle\Tests;
 
+use Pada\SchedulerBundle\Tests\Fixtures\IntervalTask;
 use Pada\SchedulerBundle\Tests\Fixtures\EveryHourTask;
 use Pada\SchedulerBundle\Tests\Fixtures\EveryMinuteTask;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -23,5 +24,14 @@ class SchedulerContextTest extends KernelTestCase
 
         $task = $kernel->getContainer()->get('scheduler_bundle_context')->getTask(EveryHourTask::class);
         self::assertInstanceOf(EveryHourTask::class, $task);
+    }
+
+    public function testA(): void
+    {
+        $kernel = static::createKernel();
+        $kernel->boot();
+
+        $task = $kernel->getContainer()->get('scheduler_bundle_context')->getTask(IntervalTask::class);
+        self::assertInstanceOf(IntervalTask::class, $task);
     }
 }
