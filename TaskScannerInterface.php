@@ -5,7 +5,7 @@ namespace Pada\SchedulerBundle;
 interface TaskScannerInterface
 {
     /**
-     * @return \Generator<Task>
+     * @return \Generator<AbstractTask>
      */
     public function next(): \Generator;
 }

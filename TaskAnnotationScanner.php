@@ -31,7 +31,7 @@ final class TaskAnnotationScanner implements TaskScannerInterface
     }
 
     /**
-     * @return \Generator<Task>
+     * @return \Generator<AbstractTask>
      */
     public function next(): \Generator
     {
@@ -68,17 +68,31 @@ final class TaskAnnotationScanner implements TaskScannerInterface
         return true;
     }
 
-    private function createTask(string $className, string $methodName, Scheduled $scheduled): Task
+    private function createTask(string $className, string $methodName, Scheduled $scheduled): AbstractTask
     {
-        return new Task(
-            $className,
-            $methodName,
-            $scheduled->getCron(),
-            $scheduled->getTimeout(),
-            $scheduled->getErrorHandler(),
-            $scheduled->getErrorThreshold(),
-            $scheduled->getDelayTimeout(),
-        );
+        if (!empty($scheduled->getCron())) {
+            return new CronTask($className,
+                $methodName,
+                $scheduled->getCron(),
+                $scheduled->getTimeout(),
+                $scheduled->getErrorHandler(),
+                $scheduled->getErrorThreshold(),
+                $scheduled->getDelayTimeout(),
+            );
+        }
+
+        if (null !== $scheduled->getInterval()) {
+            return new IntervalTask($className,
+                $methodName,
+                $scheduled->getInterval(),
+                $scheduled->getTimeout(),
+                $scheduled->getErrorHandler(),
+                $scheduled->getErrorThreshold(),
+                $scheduled->getDelayTimeout(),
+            );
+        }
+
+        throw new \RuntimeException('Unknown scheduled task type');
     }
 
     private function getScheduledClassAnnotation(ClassInfo $classInfo): ?Scheduled

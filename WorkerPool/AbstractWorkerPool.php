@@ -2,8 +2,8 @@
 
 namespace Pada\SchedulerBundle\WorkerPool;
 
+use Pada\SchedulerBundle\AbstractTask;
 use Pada\SchedulerBundle\DelayedTask;
-use Pada\SchedulerBundle\Task;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -26,7 +26,7 @@ abstract class AbstractWorkerPool implements LoggerAwareInterface
     }
 
     abstract public function touch(): void;
-    abstract protected function doStart(int $workerId, Task $task): void;
+    abstract protected function doStart(int $workerId, AbstractTask $task): void;
     abstract protected function getAvailableWorkerId(): ?int;
 
     public function getMaxWorkers(): int
@@ -44,7 +44,7 @@ abstract class AbstractWorkerPool implements LoggerAwareInterface
         return $this->logger;
     }
 
-    public function start(Task $task): void
+    public function start(AbstractTask $task): void
     {
         $workerId = $this->getAvailableWorkerId();
         if (null === $workerId) {
@@ -77,7 +77,7 @@ abstract class AbstractWorkerPool implements LoggerAwareInterface
         $this->doStart($workerId, $task);
     }
 
-    private function enqueue(Task $task): void
+    private function enqueue(AbstractTask $task): void
     {
         if ($this->maxQueueSize <= 0) {
             $this->logger->error('[{task_id}]] could not enqueue a scheduled task, queuing is disabled.', [
@@ -98,7 +98,7 @@ abstract class AbstractWorkerPool implements LoggerAwareInterface
         ]);
     }
 
-    private function dequeue(): ?Task
+    private function dequeue(): ?AbstractTask
     {
         $now = \microtime(true);
         $task = null;

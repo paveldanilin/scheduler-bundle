@@ -9,7 +9,7 @@ use React\EventLoop\Loop;
 
 final class Scheduler implements SchedulerInterface
 {
-    /** @var array<Task> */
+    /** @var array<AbstractTask> */
     private array $tasks;
     private LoggerInterface $logger;
     private AbstractWorkerPool $workerPool;
@@ -26,35 +26,21 @@ final class Scheduler implements SchedulerInterface
         $this->logger = $logger;
     }
 
-    public function schedule(Task $task): void
+    public function schedule(AbstractTask $task): void
     {
-        $this->logger->notice('Schedule task id={task_id},cron={cron_expression},timeout={timeout},delayTimeout={delay_timeout},class={class_name},method={method_name}.', [
-            'task_id' => $task->getId(),
-            'class_name' => $task->getClassName(),
-            'method_name' => $task->getMethodName(),
-            'cron_expression' => $task->getCronExpression(),
-            'timeout' => $task->getTimeout(),
-            'delay_timeout' => $task->getDelayTimeout(),
-        ]);
+        $this->logger->notice(
+            'Schedule task id={task_id},cron={cron_expression},timeout={timeout},delayTimeout={delay_timeout},class={class_name},method={method_name}.',
+            $this->buildLogContext($task)
+        );
         $this->tasks[] = $task;
     }
 
     public function start(): void
     {
-        $this->alignTime();
+        $this->startIntervalTasks();
+        $this->startCronTasks();
 
-        Loop::addPeriodicTimer(60, function () {
-            foreach ($this->tasks as $task) {
-                if ($task->isDue()) {
-                    $this->workerPool->start($task);
-                }
-            }
-        });
-
-        Loop::addPeriodicTimer(1, function () {
-            $this->workerPool->touch();
-        });
-
+        // Log
         $onStartMessage = 'Scheduled {task_count} task';
         if (\count($this->tasks) > 1) {
             $onStartMessage = 'Scheduled {task_count} tasks';
@@ -69,14 +55,82 @@ final class Scheduler implements SchedulerInterface
             ]);
         }
 
+        // WorkerPool supervisor
+        Loop::addPeriodicTimer(1, function () {
+            $this->workerPool->touch();
+        });
+
         Loop::run();
     }
 
+    private function startIntervalTasks(): void
+    {
+        /** @var IntervalTask[] $intervalTasks */
+        $intervalTasks = \array_filter($this->tasks, static fn(AbstractTask $task) => $task instanceof IntervalTask);
+        if (0 === \count($intervalTasks)) {
+            return;
+        }
+
+        $grouped = [];
+        foreach ($intervalTasks as $intervalTask) {
+            if (!\array_key_exists($intervalTask->getInterval(), $grouped)) {
+                $grouped[$intervalTask->getInterval()] = [];
+            }
+            $grouped[$intervalTask->getInterval()][] = $intervalTask;
+        }
+
+        foreach ($grouped as $intervalSec => $task) {
+            Loop::addPeriodicTimer($intervalSec, fn() => $this->workerPool->start($task));
+        }
+    }
+
+    private function startCronTasks(): void
+    {
+        /** @var CronTask[] $cronTasks */
+        $cronTasks = \array_filter($this->tasks, static fn (AbstractTask $task) => $task instanceof CronTask);
+        if (0 === \count($cronTasks)) {
+            return;
+        }
+
+        $this->alignTime();
+
+        // Tick - check - start
+        Loop::addPeriodicTimer(60, function () use($cronTasks) {
+            foreach ($cronTasks as $task) {
+                if ($task->isDue()) {
+                    $this->workerPool->start($task);
+                }
+            }
+        });
+    }
+
+    /**
+     * Sleeps up to next 0-second
+     * @return void
+     */
     private function alignTime(): void
     {
         $now = (int)(new \DateTimeImmutable())->format('s');
         if ($now > 0) {
             \sleep(60 - $now);
         }
+    }
+
+    private function buildLogContext(AbstractTask $task): array
+    {
+        $logContext = [
+            'task_id' => $task->getId(),
+            'class_name' => $task->getClassName(),
+            'method_name' => $task->getMethodName(),
+            'timeout' => $task->getTimeout(),
+            'delay_timeout' => $task->getDelayTimeout(),
+        ];
+        if ($task instanceof CronTask) {
+            $logContext['cron_expression'] = $task->getCronExpression();
+        }
+        if ($task instanceof IntervalTask) {
+            $logContext['interval'] = $task->getInterval();
+        }
+        return $logContext;
     }
 }

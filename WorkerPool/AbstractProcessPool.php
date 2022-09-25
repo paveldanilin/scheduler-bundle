@@ -2,7 +2,8 @@
 
 namespace Pada\SchedulerBundle\WorkerPool;
 
-use Pada\SchedulerBundle\Task;
+use Pada\SchedulerBundle\AbstractTask;
+use Pada\SchedulerBundle\CronTask;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 
@@ -27,9 +28,9 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
         $this->workerTaskMap = [];
     }
 
-    abstract protected function buildWorkerCommand(Task $task): array;
+    abstract protected function buildWorkerCommand(AbstractTask $task): array;
 
-    protected function doStart(int $workerId, Task $task): void
+    protected function doStart(int $workerId, AbstractTask $task): void
     {
         $this->getLogger()->debug('[{task_id}-{worker_id}] starting task...', [
             'task_id' => $task->getId(),
@@ -54,7 +55,7 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
         }
     }
 
-    private function handle(string $type, string $output, int $workerId, Task $task): void
+    private function handle(string $type, string $output, int $workerId, AbstractTask $task): void
     {
         unset($this->workerTaskMap[$workerId]);
         if (Process::ERR === $type) {
@@ -94,18 +95,21 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
         }
     }
 
-    private function onTaskSuccess(int $workerId, Task $task): void
+    private function onTaskSuccess(int $workerId, AbstractTask $task): void
     {
         $task->addSuccess();
-        $this->getLogger()->info('[{task_id}-{worker_id}] a task completed, count={success_count}, next={next_run}', [
+        $logContext = [
             'success_count' => $task->getSuccessCount(),
             'task_id' => $task->getId(),
             'worker_id' => $workerId,
-            'next_run' => \date('Y-m-d H:i:s', $task->getNextRunDate()),
-        ]);
+        ];
+        if ($task instanceof CronTask) {
+            $logContext['next_run'] = \date('Y-m-d H:i:s', $task->getNextRunDate());
+        }
+        $this->getLogger()->info('[{task_id}-{worker_id}] a task completed, count={success_count}, next={next_run}', $logContext);
     }
 
-    private function onTaskError(int $workerId, Task $task, string $processOutput): void
+    private function onTaskError(int $workerId, AbstractTask $task, string $processOutput): void
     {
         $task->addError();
 

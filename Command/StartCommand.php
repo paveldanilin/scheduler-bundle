@@ -2,8 +2,8 @@
 
 namespace Pada\SchedulerBundle\Command;
 
+use Pada\SchedulerBundle\AbstractTask;
 use Pada\SchedulerBundle\SchedulerInterface;
-use Pada\SchedulerBundle\Task;
 use Pada\SchedulerBundle\TaskScannerInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -26,7 +26,7 @@ class StartCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        /** @var Task|null $task */
+        /** @var AbstractTask|null $task */
         foreach ($this->taskScanner->next() as $task) {
             if (null === $task) {
                 break;
