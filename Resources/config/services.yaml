@@ -45,6 +45,8 @@ services:
     public: true
     class: Pada\SchedulerBundle\Command\ExecuteCommand
     arguments: ['@scheduler_bundle_context']
+    calls:
+      - setEventDispatcher: ['@?event_dispatcher']
     tags:
       - { name: 'console.command', command: 'scheduler:execute' }
 

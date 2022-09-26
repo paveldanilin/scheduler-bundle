@@ -9,15 +9,16 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 
 class SchedulerContextTest extends KernelTestCase
 {
-    public function testClassInvoke(): void
+    public function testEveryMinuteTask(): void
     {
         $kernel = static::createKernel();
         $kernel->boot();
+
         $task = $kernel->getContainer()->get('scheduler_bundle_context')->getTask(EveryMinuteTask::class);
         self::assertInstanceOf(EveryMinuteTask::class, $task);
     }
 
-    public function testMethod(): void
+    public function testEveryHourTask(): void
     {
         $kernel = static::createKernel();
         $kernel->boot();
@@ -26,7 +27,7 @@ class SchedulerContextTest extends KernelTestCase
         self::assertInstanceOf(EveryHourTask::class, $task);
     }
 
-    public function testA(): void
+    public function testIntervalTask(): void
     {
         $kernel = static::createKernel();
         $kernel->boot();

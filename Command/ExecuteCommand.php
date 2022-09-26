@@ -3,7 +3,12 @@
 namespace Pada\SchedulerBundle\Command;
 
 use Pada\SchedulerBundle\AbstractTask;
+use Pada\SchedulerBundle\Event\AfterTaskEvent;
+use Pada\SchedulerBundle\Event\BeforeTaskEvent;
+use Pada\SchedulerBundle\Event\FailedTaskEvent;
+use Pada\SchedulerBundle\NullEventDispatcher;
 use Pada\SchedulerBundle\SchedulerContext;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use Symfony\Component\Console\Command\Command;
@@ -14,21 +19,29 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ExecuteCommand extends Command
 {
+    private const LOG_PREFIX = 'SCHEDULER';
     protected static $defaultName = 'scheduler:execute';
 
     private LoggerInterface $logger;
     private SchedulerContext $schedulerContext;
+    private EventDispatcherInterface $eventDispatcher;
 
     public function __construct(SchedulerContext $schedulerContext)
     {
         parent::__construct();
         $this->schedulerContext = $schedulerContext;
         $this->logger = new NullLogger();
+        $this->eventDispatcher = new NullEventDispatcher();
     }
 
     public function setLogger(LoggerInterface $logger): void
     {
         $this->logger = $logger;
+    }
+
+    public function setEventDispatcher(?EventDispatcherInterface $eventDispatcher): void
+    {
+        $this->eventDispatcher = $eventDispatcher ?? new NullEventDispatcher();
     }
 
     protected function configure(): void
@@ -45,42 +58,128 @@ class ExecuteCommand extends Command
         $taskServiceObject = $this->schedulerContext->getTask($className);
         if (!\method_exists($taskServiceObject, $methodName)) {
             $this->logger->error(
-                'Scheduler: could not start task. The task class [{class_name}] does not have a method [{method_name}]', [
+                '[{prefix}] A method does not exist `{class_name}::{method_name}`', [
+                    'prefix' => self::LOG_PREFIX,
                     'class_name' => $className,
                     'method_name' => $methodName,
                 ]
             );
-            throw new \RuntimeException('The task class does not have the ' . $methodName . ' method');
+            throw new \RuntimeException('A method does not exist `' . $className.'::'.$methodName . '`');
         }
 
         $taskId = AbstractTask::generateId($className, $methodName);
         $this->schedulerContext->setCurrentTaskId($taskId);
 
-        $this->logger->debug('[{task_id}] before task.', [
+        // Before task
+        $mustSkip = $this->beforeTask($taskId, $className, $methodName);
+        if ($mustSkip) {
+            $output->writeln("[$taskId] skipped");
+            return 0;
+        }
+        // Call task
+        $taskResult = $this->callTask($taskId, $taskServiceObject, $className, $methodName);
+        // After task
+        $this->afterTask($taskId, $className, $methodName, $taskResult);
+
+        $output->writeln("[$taskId] ok");
+        return 0;
+    }
+
+    /**
+     * Returns TRUE if execution MUST be skipped.
+     * Returns FALSE if execution MUST NOT be skipped.
+     *
+     * @param string $taskId
+     * @param string $className
+     * @param string $methodName
+     * @return bool
+     * @throws \Throwable
+     */
+    private function beforeTask(string $taskId, string $className, string $methodName): bool
+    {
+        $this->logger->debug('[{prefix}] [{task_id}] [BEFORE] `{class_name}::{method_name}`.', [
+            'prefix' => self::LOG_PREFIX,
             'task_id' => $taskId,
             'class_name' => $className,
             'method_name' => $methodName,
         ]);
 
         try {
-            \ob_start();
-            [$taskServiceObject, $methodName]();
-            \ob_get_clean();
-
-            $this->logger->debug('[{task_id}] after task.', [
+            $event = $this->eventDispatcher->dispatch(new BeforeTaskEvent($taskId, $className, $methodName));
+            if ($event instanceof BeforeTaskEvent) {
+                return $event->getSkipExecution();
+            }
+            return false;
+        } catch (\Throwable $throwable) {
+            $this->logger->error('[{prefix}] [{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
+                'prefix' => self::LOG_PREFIX,
                 'task_id' => $taskId,
                 'class_name' => $className,
                 'method_name' => $methodName,
+                'error' => $throwable->getMessage(),
             ]);
+            $this->eventDispatcher->dispatch(new FailedTaskEvent($taskId, $className, $methodName, $throwable));
+            throw $throwable;
+        }
+    }
 
-            $output->writeln("[$taskId] ok");
-            return 0;
-        } catch (\Throwable $exception) {
-            $this->logger->error('[{task_id}] failed. {error}', [
+    /**
+     * @param string $taskId
+     * @param mixed $taskServiceObject
+     * @param string $className
+     * @param string $methodName
+     * @return mixed
+     * @throws \Throwable
+     */
+    private function callTask(string $taskId, $taskServiceObject, string $className, string $methodName)
+    {
+        try {
+            \ob_start();
+            $ret = [$taskServiceObject, $methodName]();
+            \ob_get_clean();
+            return $ret;
+        } catch (\Throwable $throwable) {
+            $this->logger->error('[{prefix}] [{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
+                'prefix' => self::LOG_PREFIX,
                 'task_id' => $taskId,
-                'error' => $exception->getMessage(),
+                'class_name' => $className,
+                'method_name' => $methodName,
+                'error' => $throwable->getMessage(),
             ]);
-            throw $exception;
+            $this->eventDispatcher->dispatch(new FailedTaskEvent($taskId, $className, $methodName, $throwable));
+            throw $throwable;
+        }
+    }
+
+    /**
+     * @param string $taskId
+     * @param string $className
+     * @param string $methodName
+     * @param mixed $taskResult
+     * @return void
+     * @throws \Throwable
+     */
+    private function afterTask(string $taskId, string $className, string $methodName, $taskResult): void
+    {
+        $this->logger->debug('[{prefix}] [{task_id}] [AFTER] `{class_name}::{method_name}`.', [
+            'prefix' => self::LOG_PREFIX,
+            'task_id' => $taskId,
+            'class_name' => $className,
+            'method_name' => $methodName,
+        ]);
+
+        try {
+            $this->eventDispatcher->dispatch(new AfterTaskEvent($taskId, $className, $methodName, $taskResult));
+        } catch (\Throwable $throwable) {
+            $this->logger->error('[{prefix}] [{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
+                'prefix' => self::LOG_PREFIX,
+                'task_id' => $taskId,
+                'class_name' => $className,
+                'method_name' => $methodName,
+                'error' => $throwable->getMessage(),
+            ]);
+            $this->eventDispatcher->dispatch(new FailedTaskEvent($taskId, $className, $methodName, $throwable));
+            throw $throwable;
         }
     }
 }
