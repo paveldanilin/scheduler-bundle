@@ -29,7 +29,7 @@ final class Scheduler implements SchedulerInterface
     public function schedule(AbstractTask $task): void
     {
         $this->logger->notice(
-            'New task id={task_id},cron={cron_expression},timeout={timeout},delayTimeout={delay_timeout},class={class_name},method={method_name}.',
+            'New task id={task_id},cron={cron_expression},interval={interval},class={class_name},method={method_name},timeout={timeout},delayTimeout={delay_timeout}.',
             $this->buildLogContext($task)
         );
         $this->tasks[] = $task;
@@ -40,16 +40,20 @@ final class Scheduler implements SchedulerInterface
         $this->startIntervalTasks();
         $this->startCronTasks();
 
-        $this->logger->notice('[{task_count}] tasks', [
-            'task_count' => \count($this->tasks)
-        ]);
-
         foreach ($this->tasks as $scheduledTask) {
-            $nextRun = $scheduledTask->updateNextRunDate();
-            $this->logger->notice('Task {task_id} next run {next_run}', [
-                'task_id' => $scheduledTask->getId(),
-                'next_run' => \date('Y-m-d H:i:s', $nextRun),
-            ]);
+            if ($scheduledTask instanceof CronTask) {
+                $nextRun = $scheduledTask->updateNextRunDate();
+                $this->logger->notice('Task {task_id} cron={cron}, next_run={next_run}', [
+                    'task_id' => $scheduledTask->getId(),
+                    'cron' => $scheduledTask->getCronExpression(),
+                    'next_run' => \date('Y-m-d H:i:s', $nextRun),
+                ]);
+            } elseif ($scheduledTask instanceof IntervalTask) {
+                $this->logger->notice('Task {task_id} interval={interval}', [
+                    'task_id' => $scheduledTask->getId(),
+                    'interval' => $scheduledTask->getInterval(),
+                ]);
+            }
         }
 
         // WorkerPool supervisor
@@ -131,6 +135,8 @@ final class Scheduler implements SchedulerInterface
             'method_name' => $task->getMethodName(),
             'timeout' => $task->getTimeout(),
             'delay_timeout' => $task->getDelayTimeout(),
+            'cron_expression' => '',
+            'interval' => '',
         ];
         if ($task instanceof CronTask) {
             $logContext['cron_expression'] = $task->getCronExpression();
