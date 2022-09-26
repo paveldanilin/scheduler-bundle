@@ -68,6 +68,7 @@ final class Scheduler implements SchedulerInterface
             return;
         }
 
+        // Grouped by interval
         $grouped = [];
         foreach ($intervalTasks as $intervalTask) {
             if (!\array_key_exists($intervalTask->getInterval(), $grouped)) {
@@ -76,8 +77,15 @@ final class Scheduler implements SchedulerInterface
             $grouped[$intervalTask->getInterval()][] = $intervalTask;
         }
 
-        foreach ($grouped as $intervalSec => $task) {
-            Loop::addPeriodicTimer($intervalSec, fn() => $this->workerPool->start($task));
+        /**
+         * @var int $intervalSec
+         * @var IntervalTask[] $tasks
+         */
+        foreach ($grouped as $intervalSec => $tasks) {
+            foreach ($tasks as $task) {
+                // TODO: inject timer object into task object
+                Loop::addPeriodicTimer($intervalSec, fn() => $this->workerPool->start($task));
+            }
         }
     }
 
