@@ -29,7 +29,7 @@ final class Scheduler implements SchedulerInterface
     public function schedule(AbstractTask $task): void
     {
         $this->logger->notice(
-            'Schedule task id={task_id},cron={cron_expression},timeout={timeout},delayTimeout={delay_timeout},class={class_name},method={method_name}.',
+            '[{prefix}]] New task id={task_id},cron={cron_expression},timeout={timeout},delayTimeout={delay_timeout},class={class_name},method={method_name}.',
             $this->buildLogContext($task)
         );
         $this->tasks[] = $task;
@@ -40,16 +40,15 @@ final class Scheduler implements SchedulerInterface
         $this->startIntervalTasks();
         $this->startCronTasks();
 
-        // Log
-        $onStartMessage = 'Scheduled {task_count} task';
-        if (\count($this->tasks) > 1) {
-            $onStartMessage = 'Scheduled {task_count} tasks';
-        }
-        $this->logger->notice($onStartMessage, ['task_count' => \count($this->tasks)]);
+        $this->logger->notice('[{prefix}] [{task_count}] tasks', [
+            'prefix' => self::LOG_PREFIX,
+            'task_count' => \count($this->tasks)
+        ]);
 
         foreach ($this->tasks as $scheduledTask) {
             $nextRun = $scheduledTask->updateNextRunDate();
-            $this->logger->notice('Task {task_id} next run {next_run}', [
+            $this->logger->notice('[{prefix}] Task {task_id} next run {next_run}', [
+                'prefix' => self::LOG_PREFIX,
                 'task_id' => $scheduledTask->getId(),
                 'next_run' => \date('Y-m-d H:i:s', $nextRun),
             ]);
@@ -105,7 +104,7 @@ final class Scheduler implements SchedulerInterface
     }
 
     /**
-     * Sleeps up to next 0-second
+     * Sleeps up to the next 0-second
      * @return void
      */
     private function alignTime(): void
@@ -119,6 +118,7 @@ final class Scheduler implements SchedulerInterface
     private function buildLogContext(AbstractTask $task): array
     {
         $logContext = [
+            'prefix' => self::LOG_PREFIX,
             'task_id' => $task->getId(),
             'class_name' => $task->getClassName(),
             'method_name' => $task->getMethodName(),

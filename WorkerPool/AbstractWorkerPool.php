@@ -10,6 +10,8 @@ use Psr\Log\NullLogger;
 
 abstract class AbstractWorkerPool implements LoggerAwareInterface
 {
+    protected const LOG_PREFIX = 'SCHEDULER';
+
     private int $maxWorkers;
     private int $maxQueueSize;
     private ?float $taskDelayTimeout;
@@ -57,19 +59,25 @@ abstract class AbstractWorkerPool implements LoggerAwareInterface
     protected function pushQueueProcess(): void
     {
         if (0 === $this->queue->count()) {
-            $this->logger->debug('No queued tasks, nothing to execute.');
+            $this->logger->debug('[{prefix}] No queued tasks, nothing to execute.', [
+                'prefix' => self::LOG_PREFIX
+            ]);
             return;
         }
 
         $task = $this->dequeue();
         if (null === $task) {
-            $this->logger->warning('Dequeued an empty task, nothing to execute.');
+            $this->logger->warning('[{prefix}] Dequeued an empty task, nothing to execute.', [
+                'prefix' => self::LOG_PREFIX
+            ]);
             return;
         }
 
         $workerId = $this->getAvailableWorkerId();
         if (null === $workerId) {
-            $this->logger->warning('Cannot process a queue, all workers are busy.');
+            $this->logger->warning('[{prefix}] Cannot process a queue, all workers are busy.', [
+                'prefix' => self::LOG_PREFIX
+            ]);
             $this->enqueue($task);
             return;
         }
@@ -80,19 +88,22 @@ abstract class AbstractWorkerPool implements LoggerAwareInterface
     private function enqueue(AbstractTask $task): void
     {
         if ($this->maxQueueSize <= 0) {
-            $this->logger->error('[{task_id}]] could not enqueue a scheduled task, queuing is disabled.', [
+            $this->logger->error('[{prefix}] [{task_id}] could not enqueue a scheduled task, queuing is disabled.', [
+                'prefix' => self::LOG_PREFIX,
                 'task_id' => $task->getId(),
             ]);
             return;
         }
         if ($this->queue->count() > $this->maxQueueSize) {
-            $this->logger->error('[{task_id}]] could not enqueue a scheduled task, run out of a queue capacity.', [
+            $this->logger->error('[{prefix}] [{task_id}] could not enqueue a scheduled task, run out of a queue capacity.', [
+                'prefix' => self::LOG_PREFIX,
                 'task_id' => $task->getId(),
             ]);
             return;
         }
         $this->queue->enqueue(new DelayedTask($task));
-        $this->logger->debug('[{task_id}]] scheduled task has been put to a queue.', [
+        $this->logger->debug('[{prefix}] [{task_id}]] scheduled task has been put to a queue.', [
+            'prefix' => self::LOG_PREFIX,
             'queue_size' => $this->queue->count(),
             'task_id' => $task->getId(),
         ]);
@@ -110,7 +121,8 @@ abstract class AbstractWorkerPool implements LoggerAwareInterface
             }
             $delayTimeout = $delayedTask->getTask()->getDelayTimeout() ?? $this->taskDelayTimeout ?? -1;
             if ($delayTimeout > 0 && ($now - $delayedTask->getTimer()) >= $delayTimeout) {
-                $this->logger->warning('Delayed task [{task_id}] is expired', [
+                $this->logger->warning('[{prefix}] Delayed task [{task_id}] is expired', [
+                    'prefix' => self::LOG_PREFIX,
                     'task_id' => $delayedTask->getTask()->getId()
                 ]);
                 continue;

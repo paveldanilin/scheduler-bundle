@@ -32,7 +32,8 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
 
     protected function doStart(int $workerId, AbstractTask $task): void
     {
-        $this->getLogger()->debug('[{task_id}-{worker_id}] starting task...', [
+        $this->getLogger()->debug('[{prefix}] [{task_id}-{worker_id}] starting task...', [
+            'prefix'=> self::LOG_PREFIX,
             'task_id' => $task->getId(),
             'worker_id' => $workerId,
             'class_name' => $task->getClassName(),
@@ -47,7 +48,8 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
             $this->workers[$workerId]->start(fn($type, $output) => $this->handle($type, $output, $workerId, $task));
         } catch (\Exception $exception) {
             unset($this->workerTaskMap[$workerId]);
-            $this->getLogger()->error('[{task_id}-{worker_id}] failed to start task. {error}', [
+            $this->getLogger()->error('[{prefix}] [{task_id}-{worker_id}] failed to start task. {error}', [
+                'prefix' => self::LOG_PREFIX,
                 'error' => $exception->getMessage(),
                 'task_id' => $task->getId(),
                 'worker_id' => $workerId,
@@ -86,7 +88,8 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
             } catch (ProcessTimedOutException $exception) {
                 $taskId = $this->workerTaskMap[$workerId] ?? -1;
                 unset($this->workerTaskMap[$workerId]);
-                $this->getLogger()->error('[{task_id}-{worker_id}] task has failed with timeout.', [
+                $this->getLogger()->error('[{prefix}] [{task_id}-{worker_id}] task has failed with timeout.', [
+                    'prefix' => self::LOG_PREFIX,
                     'task_id' => $taskId,
                     'worker_id' => $workerId,
                     'error' => $exception->getMessage()
@@ -99,6 +102,7 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
     {
         $task->addSuccess();
         $logContext = [
+            'prefix' => self::LOG_PREFIX,
             'success_count' => $task->getSuccessCount(),
             'task_id' => $task->getId(),
             'worker_id' => $workerId,
@@ -106,14 +110,18 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
         if ($task instanceof CronTask) {
             $logContext['next_run'] = \date('Y-m-d H:i:s', $task->getNextRunDate());
         }
-        $this->getLogger()->info('[{task_id}-{worker_id}] a task completed, count={success_count}, next={next_run}', $logContext);
+        $this->getLogger()->info(
+            '[{prefix}] [{task_id}-{worker_id}] a task completed, count={success_count}, next={next_run}',
+            $logContext
+        );
     }
 
     private function onTaskError(int $workerId, AbstractTask $task, string $processOutput): void
     {
         $task->addError();
 
-        $this->getLogger()->error('[{task_id}-{worker_id}] task failed, count={error_count}.', [
+        $this->getLogger()->error('[{prefix}] [{task_id}-{worker_id}] task failed, count={error_count}.', [
+            'prefix' => self::LOG_PREFIX,
             'task_id' => $task->getId(),
             'worker_id' => $workerId,
             'error_count' => $task->getErrorCount(),
@@ -127,8 +135,9 @@ abstract class AbstractProcessPool extends AbstractWorkerPool
             if (null === $errorHandler) {
                 $task->disable();
                 $this->getLogger()->alert(
-                    '[{task_id}-{worker_id}] error count exceeded the threshold ({error_count} > {error_threshold}), going to disable task.',
+                    '[{prefix}] [{task_id}-{worker_id}] error count exceeded the threshold ({error_count} > {error_threshold}), going to disable task.',
                     [
+                        'prefix' => self::LOG_PREFIX,
                         'task_id' => $task->getId(),
                         'worker_id' => $workerId,
                         'error_threshold' => $task->getErrorThreshold(),

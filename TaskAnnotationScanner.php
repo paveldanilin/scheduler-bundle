@@ -8,6 +8,8 @@ use Pada\SchedulerBundle\Annotation\Scheduled;
 
 final class TaskAnnotationScanner implements TaskScannerInterface
 {
+    private const DEFAULT_METHOD = '__invoke';
+
     private ScannerInterface $metaScanner;
     /** @var array<string>  */
     private array $scanDir;
@@ -49,7 +51,7 @@ final class TaskAnnotationScanner implements TaskScannerInterface
                         yield $this->createTask($className, $methodName, $methodLevelAnnotation);
                     }
                 } else {
-                    yield $this->createTask($className, '__invoke', $classLevelAnnotation);
+                    yield $this->createTask($className, self::DEFAULT_METHOD, $classLevelAnnotation);
                 }
             }
         }
@@ -106,7 +108,7 @@ final class TaskAnnotationScanner implements TaskScannerInterface
 
     /**
      * @param ClassInfo $classInfo
-     * @return \Generator<array>
+     * @return \Generator<array> [<methodName>, <Scheduled>]
      */
     private function getScheduledMethods(ClassInfo $classInfo): \Generator
     {
