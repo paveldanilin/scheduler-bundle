@@ -82,10 +82,12 @@ final class Scheduler implements SchedulerInterface
          * @var IntervalTask[] $tasks
          */
         foreach ($grouped as $intervalSec => $tasks) {
-            foreach ($tasks as $task) {
-                // TODO: inject timer object into task object
-                Loop::addPeriodicTimer($intervalSec, fn() => $this->workerPool->start($task));
-            }
+            // TODO: inject timer object into task object
+            Loop::addPeriodicTimer($intervalSec, function () use($tasks) {
+                foreach ($tasks as $task) {
+                    $this->workerPool->start($task);
+                }
+            });
         }
     }
 
