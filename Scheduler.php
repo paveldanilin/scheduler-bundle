@@ -29,7 +29,7 @@ final class Scheduler implements SchedulerInterface
     public function schedule(AbstractTask $task): void
     {
         $this->logger->notice(
-            '[{prefix}]] New task id={task_id},cron={cron_expression},timeout={timeout},delayTimeout={delay_timeout},class={class_name},method={method_name}.',
+            'New task id={task_id},cron={cron_expression},timeout={timeout},delayTimeout={delay_timeout},class={class_name},method={method_name}.',
             $this->buildLogContext($task)
         );
         $this->tasks[] = $task;
@@ -40,15 +40,13 @@ final class Scheduler implements SchedulerInterface
         $this->startIntervalTasks();
         $this->startCronTasks();
 
-        $this->logger->notice('[{prefix}] [{task_count}] tasks', [
-            'prefix' => self::LOG_PREFIX,
+        $this->logger->notice('[{task_count}] tasks', [
             'task_count' => \count($this->tasks)
         ]);
 
         foreach ($this->tasks as $scheduledTask) {
             $nextRun = $scheduledTask->updateNextRunDate();
-            $this->logger->notice('[{prefix}] Task {task_id} next run {next_run}', [
-                'prefix' => self::LOG_PREFIX,
+            $this->logger->notice('Task {task_id} next run {next_run}', [
                 'task_id' => $scheduledTask->getId(),
                 'next_run' => \date('Y-m-d H:i:s', $nextRun),
             ]);
@@ -118,7 +116,6 @@ final class Scheduler implements SchedulerInterface
     private function buildLogContext(AbstractTask $task): array
     {
         $logContext = [
-            'prefix' => self::LOG_PREFIX,
             'task_id' => $task->getId(),
             'class_name' => $task->getClassName(),
             'method_name' => $task->getMethodName(),

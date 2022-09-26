@@ -19,7 +19,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ExecuteCommand extends Command
 {
-    private const LOG_PREFIX = 'SCHEDULER';
     protected static $defaultName = 'scheduler:execute';
 
     private LoggerInterface $logger;
@@ -58,8 +57,7 @@ class ExecuteCommand extends Command
         $taskServiceObject = $this->schedulerContext->getTask($className);
         if (!\method_exists($taskServiceObject, $methodName)) {
             $this->logger->error(
-                '[{prefix}] A method does not exist `{class_name}::{method_name}`', [
-                    'prefix' => self::LOG_PREFIX,
+                'A method does not exist `{class_name}::{method_name}`', [
                     'class_name' => $className,
                     'method_name' => $methodName,
                 ]
@@ -97,8 +95,7 @@ class ExecuteCommand extends Command
      */
     private function beforeTask(string $taskId, string $className, string $methodName): bool
     {
-        $this->logger->debug('[{prefix}] [{task_id}] [BEFORE] `{class_name}::{method_name}`.', [
-            'prefix' => self::LOG_PREFIX,
+        $this->logger->debug('[{task_id}] [BEFORE] `{class_name}::{method_name}`.', [
             'task_id' => $taskId,
             'class_name' => $className,
             'method_name' => $methodName,
@@ -111,8 +108,7 @@ class ExecuteCommand extends Command
             }
             return false;
         } catch (\Throwable $throwable) {
-            $this->logger->error('[{prefix}] [{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
-                'prefix' => self::LOG_PREFIX,
+            $this->logger->error('[{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
                 'task_id' => $taskId,
                 'class_name' => $className,
                 'method_name' => $methodName,
@@ -139,8 +135,7 @@ class ExecuteCommand extends Command
             \ob_get_clean();
             return $ret;
         } catch (\Throwable $throwable) {
-            $this->logger->error('[{prefix}] [{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
-                'prefix' => self::LOG_PREFIX,
+            $this->logger->error('[{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
                 'task_id' => $taskId,
                 'class_name' => $className,
                 'method_name' => $methodName,
@@ -161,8 +156,7 @@ class ExecuteCommand extends Command
      */
     private function afterTask(string $taskId, string $className, string $methodName, $taskResult): void
     {
-        $this->logger->debug('[{prefix}] [{task_id}] [AFTER] `{class_name}::{method_name}`.', [
-            'prefix' => self::LOG_PREFIX,
+        $this->logger->debug('[{task_id}] [AFTER] `{class_name}::{method_name}`.', [
             'task_id' => $taskId,
             'class_name' => $className,
             'method_name' => $methodName,
@@ -171,8 +165,7 @@ class ExecuteCommand extends Command
         try {
             $this->eventDispatcher->dispatch(new AfterTaskEvent($taskId, $className, $methodName, $taskResult));
         } catch (\Throwable $throwable) {
-            $this->logger->error('[{prefix}] [{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
-                'prefix' => self::LOG_PREFIX,
+            $this->logger->error('[{task_id}] [FAILED] `{class_name}::{method_name}`: {error}.', [
                 'task_id' => $taskId,
                 'class_name' => $className,
                 'method_name' => $methodName,
